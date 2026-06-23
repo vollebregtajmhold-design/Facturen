@@ -553,6 +553,7 @@ function volgendNr(){
   var n=String(hoogsteNummer()+1).padStart(3,'0');
   return p+jaar+n;
 }
+window.volgendNr=volgendNr;
 function verhoogNr(){
   nrCfg.volgend=hoogsteNummer()+1;
   bewaar('fb_nrcfg',nrCfg);
@@ -1164,13 +1165,33 @@ function toonLogoPreview(){
 toonLogoPreview();
 // ========== LOGO ==========
 
+<!-- ===== FIREBASE LIVE-SYNC ===== -->
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getFirestore,collection,doc,setDoc,deleteDoc,onSnapshot,getDocs}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSyDcIlmELWAClhg-6aOHCs-QsgxBJTkP8UQ",
+  authDomain:"cc-beheer.firebaseapp.com",
+  projectId:"cc-beheer",
+  storageBucket:"cc-beheer.firebasestorage.app",
+  messagingSenderId:"835121705327",
+  appId:"1:835121705327:web:f4f7fabf36d868809b389a"
+};
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+window.fbConnected=false;
+
+
 function vid(s){return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/,'')||'item';}
 
 async function migreer(){
   try{
-    if(window.klanten?.length&&(await getDocs(collection(db,'fb_klanten'))).empty)
+    const kSnap=await getDocs(collection(db,'fb_klanten'));
+    if(kSnap.empty&&window.klanten?.length)
       for(const k of window.klanten)await setDoc(doc(db,'fb_klanten',vid(k.naam)),k);
-    if(window.facturen?.length&&(await getDocs(collection(db,'fb_facturen'))).empty)
+    const fSnap=await getDocs(collection(db,'fb_facturen'));
+    if(fSnap.empty&&window.facturen?.length)
       for(const f of window.facturen)await setDoc(doc(db,'fb_facturen',String(f.id)),f);
   }catch(e){console.error('Migratie:',e);}
   start();
@@ -1184,21 +1205,29 @@ function start(){
     window.fbConnected=true;
     const dot=document.getElementById('syncdot');if(dot)dot.style.background='#22c55e';
     const txt=document.getElementById('synctxt');if(txt)txt.textContent='Live sync';
-    window.vulKlantSelects?.();window.toonKlanten?.();
+    window.vulKlantSelects?.();
+    window.toonKlanten?.();
+    // Ververs factuurnummer na laden klanten
+    const nrEl=document.getElementById('f-nr');
+    if(nrEl&&!window.bewerkActief)nrEl.value=window.volgendNr?.()||nrEl.value;
   });
   onSnapshot(collection(db,'fb_facturen'),snap=>{
     window.facturen=snap.docs.map(d=>d.data());
     facturen=window.facturen;
     localStorage.setItem('fb_facturen',JSON.stringify(window.facturen));
-    window.toonDashboard?.();window.toonOverzicht?.();
+    window.toonDashboard?.();
+    window.toonOverzicht?.();
+    // Ververs nummer na laden facturen
+    const nrEl=document.getElementById('f-nr');
+    if(nrEl&&!window.bewerkActief)nrEl.value=window.volgendNr?.()||nrEl.value;
   });
   onSnapshot(collection(db,'fb_config'),snap=>{
     const b=snap.docs.find(d=>d.id==='bedrijf');
-    if(b){window.bedrijf=b.data();localStorage.setItem('fb_bedrijf',JSON.stringify(window.bedrijf));}
+    if(b){window.bedrijf=b.data();bedrijf=window.bedrijf;localStorage.setItem('fb_bedrijf',JSON.stringify(window.bedrijf));}
     const n=snap.docs.find(d=>d.id==='nrcfg');
     if(n){window.nrCfg=n.data();nrCfg=window.nrCfg;localStorage.setItem('fb_nrcfg',JSON.stringify(window.nrCfg));}
     const e=snap.docs.find(d=>d.id==='emailcfg');
-    if(e){window.emailCfg=e.data();localStorage.setItem('fb_emailcfg',JSON.stringify(window.emailCfg));}
+    if(e){window.emailCfg=e.data();emailCfg=window.emailCfg;localStorage.setItem('fb_emailcfg',JSON.stringify(window.emailCfg));}
   });
 }
 
