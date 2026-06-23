@@ -160,7 +160,7 @@ tr:hover td{background:var(--input-bg);}
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <img id="sidebar-logo-img" style="max-width:120px;max-height:40px;object-fit:contain;margin-bottom:6px;display:none;" alt="Logo">
+    <img id="sidebar-logo-img" style="height:36px;max-width:140px;width:auto;object-fit:contain;object-position:left center;margin-bottom:8px;display:none;" alt="Logo">
     <h1 style="font-size:15px;">🧾 Factuur Beheer</h1>
     <p>2026</p>
   </div>
@@ -841,7 +841,13 @@ function bouwPdf(f){
   var logoData = localStorage.getItem('fb_logo') || LOGO_BASE64 || '';
   if(logoData && logoData.length > 100){
     var fmt = logoData.indexOf('image/png')>-1 ? 'PNG' : 'JPEG';
-    try{ doc.addImage(logoData, fmt, marge, 5, 42, 24); textStartX=marge+48; }catch(e){ console.warn('Logo fout:',e); }
+    try{
+      var props = doc.getImageProperties(logoData);
+      var logoW = 35; // vaste breedte 35mm
+      var logoH = logoW * (props.height / props.width); // hoogte proportioneel
+      doc.addImage(logoData, fmt, marge, 8, logoW, logoH);
+      textStartX = marge + logoW + 6;
+    }catch(e){ console.warn('Logo fout:',e); }
   }
   doc.setFontSize(13);doc.setFont(undefined,'bold');
   doc.text(b.naam||'Uw Bedrijf',textStartX,14);
