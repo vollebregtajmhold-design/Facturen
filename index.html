@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Factuur Beheer</title>
+<title>Facturen &amp; Creditnota's — Vollebregt</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -150,7 +150,7 @@ tr:hover td{background:var(--input-bg);}
 
 <!-- MOBILE TOPNAV -->
 <nav class="topnav">
-  <h1>🧾 Factuur Beheer</h1>
+  <h1>🧾 Facturen &amp; Creditnota's</h1>
   <button class="hamburger" onclick="toggleSidebar()">☰</button>
 </nav>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -161,8 +161,8 @@ tr:hover td{background:var(--input-bg);}
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <img id="sidebar-logo-img" style="height:36px;max-width:140px;width:auto;object-fit:contain;object-position:left center;margin-bottom:8px;display:none;" alt="Logo">
-    <h1 style="font-size:15px;">🧾 Factuur Beheer</h1>
-    <p>2026</p>
+    <h1 style="font-size:15px;">🧾 Facturen &amp; Creditnota's</h1>
+    <p>P.J.J. Vollebregt BV</p>
   </div>
 
   <div class="nav-section">Beheer</div>
@@ -187,6 +187,10 @@ tr:hover td{background:var(--input-bg);}
   <button class="nav-item" data-tab="bedrijf" onclick="switchTab(this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     Mijn bedrijf
+  </button>
+  <button class="nav-item" data-tab="debiteuren" onclick="switchTab(this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M17 11l2 2 4-4" stroke-width="2"/></svg>
+    Debiteuren
   </button>
   <button class="nav-item" data-tab="backup" onclick="switchTab(this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
@@ -460,6 +464,62 @@ tr:hover td{background:var(--input-bg);}
 </div>
 
 <!-- ===== BACKUP ===== -->
+<div id="tab-debiteuren" class="hidden">
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:16px;">Debiteuren</h2>
+
+  <!-- OPENSTAAND -->
+  <div class="card">
+    <div class="card-title">⚠️ Openstaande facturen</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Nr.</th><th>Datum</th><th>Vervaldatum</th><th>Klant</th>
+          <th style="white-space:nowrap">Totaal incl.</th><th>Dagen</th><th></th>
+        </tr></thead>
+        <tbody id="deb-open-tbl"></tbody>
+      </table>
+    </div>
+    <div class="totals-bar" id="deb-open-totals"></div>
+  </div>
+
+  <!-- BETAALDATUM DIALOOG -->
+  <div id="betaal-dialoog" class="card hidden" style="border:2px solid var(--green);">
+    <div class="card-title">✅ Betaaldatum invoeren</div>
+    <div class="row">
+      <div>
+        <label>Factuur</label>
+        <input type="text" id="betaal-nr" readonly style="background:var(--input-bg);color:var(--muted);">
+      </div>
+      <div>
+        <label>Betaaldatum</label>
+        <input type="date" id="betaal-datum">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="success" onclick="opslaanBetaaldatum()">✅ Opslaan als betaald</button>
+      <button class="sec" onclick="sluitBetaalDialoog()">✕ Annuleren</button>
+    </div>
+  </div>
+
+  <!-- BETAALGEDRAG PER KLANT -->
+  <div class="card">
+    <div class="card-title">📊 Betaalgedrag per klant</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Klant</th>
+          <th style="white-space:nowrap">Gefactureerd</th>
+          <th style="white-space:nowrap">Betaald</th>
+          <th style="white-space:nowrap">Openstaand</th>
+          <th style="white-space:nowrap">Gem. betaaltijd</th>
+          
+        </tr></thead>
+        <tbody id="deb-klant-tbl"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <div id="tab-backup" class="hidden">
   <h2 style="font-size:20px;font-weight:700;margin-bottom:16px;">Backup &amp; synchronisatie</h2>
   <div class="card">
@@ -516,7 +576,7 @@ function switchTab(btn){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   const tab = btn.dataset.tab;
-  ['dashboard','nieuw','overzicht','klanten','bedrijf','backup'].forEach(t=>
+  ['dashboard','nieuw','overzicht','debiteuren','klanten','bedrijf','backup'].forEach(t=>
     document.getElementById('tab-'+t).classList.add('hidden')
   );
   document.getElementById('tab-'+tab).classList.remove('hidden');
@@ -526,6 +586,7 @@ function switchTab(btn){
   if(tab==='overzicht') {vulKlantSelects(); toonOverzicht();}
   if(tab==='klanten')  {toonKlanten(); vulCfgVelden();}
   if(tab==='bedrijf')  vulBedrijfVelden();
+  if(tab==='debiteuren') toonDebiteuren();
   if(tab==='backup')   toonSyncStatus();
 }
 
@@ -600,7 +661,7 @@ function toonDashboard(){
       <td>${eur(f.totaal)}</td>
       <td>${statusBadge(f.status)}</td>
       <td style="white-space:nowrap">
-        <button class="btn-edit sm" onclick="bewerkFactuur('${f.id}')" title="Bewerken">✏️ Bewerk</button>
+        <button class="btn-edit sm" onclick="bevestigBewerken('${f.id}')" title="Bewerken">✏️ Bewerk</button>
         <button class="btn-pdf sm" onclick="genereerEnDownloadPdf('${f.id}')" title="PDF downloaden">📄 PDF</button>
       </td>
     </tr>
@@ -765,20 +826,71 @@ function bewerkFactuur(id){
   // naar nieuw tabblad
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   document.querySelector('[data-tab="nieuw"]').classList.add('active');
-  ['dashboard','nieuw','overzicht','klanten','bedrijf','backup'].forEach(t=>document.getElementById('tab-'+t).classList.add('hidden'));
+  ['dashboard','nieuw','overzicht','debiteuren','klanten','bedrijf','backup'].forEach(t=>document.getElementById('tab-'+t).classList.add('hidden'));
   document.getElementById('tab-nieuw').classList.remove('hidden');
   window.scrollTo(0,0);
 }
 function annuleerBewerken(){bewerkId=null;var nrEl=document.getElementById('f-nr');nrEl.setAttribute('readonly','');nrEl.style.color='var(--muted)';nrEl.style.cursor='default';resetNieuwForm();}
 
 // ========== STATUS WIJZIGEN ==========
-function wijzigStatus(id,status){
+// Labels voor statuswisseling
+var statusLabel={concept:'Concept',verstuurd:'Verstuurd',betaald:'Betaald',creditnota:'Creditnota'};
+
+function bevestigStatusWijziging(sel,id){
+  const nieuw = sel.value;
+  const f = facturen.find(x=>x.id===id);
+  if(!f){return;}
+  const oud = statusLabel[f.status]||f.status;
+  const nieuwLabel = statusLabel[nieuw]||nieuw;
+  if(oud===nieuwLabel){return;}
+  if(!confirm('Status wijzigen van "'+oud+'" naar "'+nieuwLabel+'" voor factuur '+f.nr+'?\n\nKloppen deze gegevens?')){
+    // Zet select terug
+    sel.value = f.status;
+    return;
+  }
+  if(nieuw==='betaald'){
+    openBetaalDialoog(id);
+    sel.value = f.status; // laat dropdown pas wijzigen na betaaldatum
+  } else {
+    wijzigStatus(id, nieuw);
+  }
+}
+
+function bevestigBewerken(id){
+  const f = facturen.find(x=>x.id===id);
+  if(!f){return;}
+  if(!confirm('Factuur '+f.nr+' bewerken voor '+f.klant+'?\n\nWeet je zeker dat je wijzigingen wilt aanbrengen?')){return;}
+  bewerkFactuur(id);
+}
+
+function wijzigStatus(id,status,betaaldatum){
   const idx=facturen.findIndex(f=>f.id===id);
   if(idx<0)return;
   facturen[idx].status=status;
+  if(betaaldatum) facturen[idx].betaaldatum=betaaldatum;
   bewaar('fb_facturen',facturen);
   if(window.fbSaveFactuur)window.fbSaveFactuur(facturen[idx]);
   toonOverzicht();toonDashboard();
+  if(document.getElementById('tab-debiteuren')&&!document.getElementById('tab-debiteuren').classList.contains('hidden'))toonDebiteuren();
+}
+var _betaalId=null;
+function openBetaalDialoog(id){
+  const f=facturen.find(x=>x.id===id);if(!f)return;
+  _betaalId=id;
+  document.getElementById('betaal-nr').value=f.nr;
+  document.getElementById('betaal-datum').value=new Date().toISOString().slice(0,10);
+  document.getElementById('betaal-dialoog').classList.remove('hidden');
+  document.getElementById('betaal-dialoog').scrollIntoView({behavior:'smooth'});
+}
+function sluitBetaalDialoog(){
+  document.getElementById('betaal-dialoog').classList.add('hidden');
+  _betaalId=null;
+}
+function opslaanBetaaldatum(){
+  if(!_betaalId)return;
+  const datum=document.getElementById('betaal-datum').value;
+  wijzigStatus(_betaalId,'betaald',datum);
+  sluitBetaalDialoog();
 }
 function verwijderFactuur(id){
   if(!confirm('Factuur verwijderen?'))return;
@@ -808,13 +920,13 @@ function toonOverzicht(){
       <td style="font-weight:600;white-space:nowrap">${eur(f.totaal||0)}</td>
       <td style="white-space:nowrap">${statusBadge(f.status)}</td>
       <td style="white-space:nowrap">
-        <select style="font-size:11px;padding:4px 6px;width:auto;border-radius:6px;" onchange="wijzigStatus('${f.id}',this.value)">
+        <select style="font-size:11px;padding:4px 6px;width:auto;border-radius:6px;" onchange="bevestigStatusWijziging(this,'${f.id}')">
           <option value="concept"   ${f.status==='concept'?'selected':''}>Concept</option>
           <option value="verstuurd" ${f.status==='verstuurd'?'selected':''}>Verstuurd</option>
           <option value="betaald"   ${f.status==='betaald'?'selected':''}>Betaald</option>
           <option value="creditnota"${f.status==='creditnota'?'selected':''}>Creditnota</option>
         </select>
-        <button class="btn-edit sm" onclick="bewerkFactuur('${f.id}')" title="Bewerken">✏️ Bewerk</button>
+        <button class="btn-edit sm" onclick="bevestigBewerken('${f.id}')" title="Bewerken">✏️ Bewerk</button>
         <button class="btn-pdf sm" onclick="genereerEnDownloadPdf('${f.id}')" title="PDF downloaden">📄 PDF</button>
         <button class="btn-mail sm" onclick="mailFactuur('${f.id}')" title="Mailen">✉️ Mail</button>
         <button class="danger sm" onclick="verwijderFactuur('${f.id}')">🗑</button>
@@ -1104,6 +1216,69 @@ function importBackup(ev){
     }catch(err){setMsg('backup-msg','❌ Ongeldig bestand.','err');}
   };r.readAsText(file);
 }
+function toonDebiteuren(){
+  var lijst=[];
+  try{lijst=JSON.parse(localStorage.getItem('fb_facturen')||'[]');}catch(e){}
+  if(!lijst.length)lijst=facturen||[];
+  const vandaag=new Date(); vandaag.setHours(0,0,0,0);
+
+  // ── Openstaand ──
+  const open=lijst.filter(f=>f.status==='verstuurd'&&f.type!=='creditnota');
+  open.sort((a,b)=>(a.verval||a.datum).localeCompare(b.verval||b.datum));
+  let totOpen=0;
+  document.getElementById('deb-open-tbl').innerHTML=open.map(f=>{
+    totOpen+=f.totaal||0;
+    const verval=f.verval?new Date(f.verval):null;
+    const diffDagen=verval?Math.floor((vandaag-verval)/(1000*60*60*24)):null;
+    let kleur='',label='';
+    if(diffDagen===null){kleur='';label='';}
+    else if(diffDagen<0){kleur='color:var(--green)';label=Math.abs(diffDagen)+' dgn resterend';}
+    else if(diffDagen===0){kleur='color:var(--orange)';label='Vervalt vandaag';}
+    else{kleur='color:var(--red);font-weight:600';label=diffDagen+' dgn te laat';}
+    return`<tr>
+      <td style="white-space:nowrap;font-weight:500">${f.nr}</td>
+      <td style="white-space:nowrap">${fmtDatum(f.datum)}</td>
+      <td style="white-space:nowrap">${fmtDatum(f.verval||'')}</td>
+      <td>${f.klant}</td>
+      <td style="white-space:nowrap;font-weight:600">${eur(f.totaal||0)}</td>
+      <td style="white-space:nowrap;${kleur}">${label}</td>
+      <td><button class="btn-mail sm" onclick="openBetaalDialoog('${f.id}')">✅ Betaald</button></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">Geen openstaande facturen.</td></tr>';
+  document.getElementById('deb-open-totals').innerHTML=`<span>Totaal openstaand: <b>${eur(totOpen)}</b></span><span style="color:var(--muted)">${open.length} facturen</span>`;
+
+  // ── Betaalgedrag per klant ──
+  var klantLijst=[];
+  try{klantLijst=JSON.parse(localStorage.getItem('fb_klanten')||'[]');}catch(e){}
+  if(!klantLijst.length)klantLijst=klanten||[];
+  const gs=[...klantLijst].sort((a,b)=>a.naam.localeCompare(b.naam,'nl'));
+
+  document.getElementById('deb-klant-tbl').innerHTML=gs.map(k=>{
+    const kf=lijst.filter(f=>f.klant===k.naam&&f.type!=='creditnota');
+    if(!kf.length)return'';
+    const totaal=kf.reduce((s,f)=>s+(f.totaal||0),0);
+    const betaald=kf.filter(f=>f.status==='betaald').reduce((s,f)=>s+(f.totaal||0),0);
+    const open2=totaal-betaald;
+    // Gemiddelde betaaltijd
+    const metDatum=kf.filter(f=>f.status==='betaald'&&f.betaaldatum&&f.datum);
+    let gemDagen='—';
+    if(metDatum.length){
+      const som=metDatum.reduce((s,f)=>{
+        const d1=new Date(f.datum),d2=new Date(f.betaaldatum);
+        return s+Math.floor((d2-d1)/(1000*60*60*24));
+      },0);
+      gemDagen=Math.round(som/metDatum.length)+' dgn';
+    }
+    return`<tr>
+      <td style="font-weight:500">${k.naam}</td>
+      <td style="white-space:nowrap">${eur(totaal)}</td>
+      <td style="white-space:nowrap;color:var(--green)">${eur(betaald)}</td>
+      <td style="white-space:nowrap;color:${open2>0?'var(--red)':'var(--muted)'};font-weight:${open2>0?600:400}">${eur(open2)}</td>
+      <td style="white-space:nowrap">${gemDagen}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">Geen klantdata.</td></tr>';
+}
+
 function exportCsv(){
   const kop=['ID','Nr','Datum','Vervaldatum','Type','Klant','Referentie','Excl. BTW','BTW 21%','BTW 9%','Totaal incl.','Status'];
   const regels=[kop.join(';')];
