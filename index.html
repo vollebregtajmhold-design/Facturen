@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="nl" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Factuur Beheer</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root,[data-theme="light"]{
+  --bg:#f4f5f7;--card:#ffffff;--border:#e2e5ea;--input-bg:#f7f8fa;
+  --text:#1a1d24;--muted:#6b7280;--accent:#2563eb;--accent2:#1d4ed8;
+  --green:#16a34a;--green-bg:#dcfce7;--red:#dc2626;--red-bg:#fee2e2;
+  --orange:#d97706;--orange-bg:#fef3c7;
+  --sidebar-bg:#1e293b;--sidebar-text:#e2e8f0;--sidebar-muted:#94a3b8;--sidebar-active:#3b82f6;
+}
+[data-theme="dark"]{
+  --bg:#0f1117;--card:#1a1d2e;--border:#2d3148;--input-bg:#12141f;
+  --text:#e8eaed;--muted:#8892a4;--accent:#3b82f6;--accent2:#2563eb;
+  --green:#22c55e;--green-bg:#14532d;--red:#f87171;--red-bg:#7f1d1d;
+  --orange:#fbbf24;--orange-bg:#78350f;
+  --sidebar-bg:#0a0d1a;--sidebar-text:#cbd5e1;--sidebar-muted:#64748b;--sidebar-active:#60a5fa;
+}
+*{box-sizing:border-box;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+
+/* TOP NAV (mobile) */
+.topnav{display:none;background:var(--sidebar-bg);padding:0 16px;height:52px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topnav h1{color:var(--sidebar-text);font-size:16px;font-weight:600;}
+.hamburger{background:none;border:none;color:var(--sidebar-text);font-size:22px;cursor:pointer;padding:6px;}
+
+/* LAYOUT */
+.app{display:flex;flex:1;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--sidebar-bg);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0;}
+.sidebar-logo{padding:20px 16px 14px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.sidebar-logo h1{color:var(--sidebar-text);font-size:17px;font-weight:700;}
+.sidebar-logo p{color:var(--sidebar-muted);font-size:11px;margin-top:2px;}
+.nav-section{padding:16px 10px 0;color:var(--sidebar-muted);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--sidebar-muted);font-size:14px;margin:1px 6px;transition:all 0.15s;border:none;background:none;width:calc(100% - 12px);}
+.nav-item:hover{background:rgba(255,255,255,0.05);color:var(--sidebar-text);}
+.nav-item.active{background:rgba(59,130,246,0.15);color:var(--sidebar-active);font-weight:500;}
+.nav-item svg{width:18px;height:18px;flex-shrink:0;}
+.sidebar-bottom{margin-top:auto;padding:12px 6px;border-top:1px solid rgba(255,255,255,0.06);}
+
+/* MAIN CONTENT */
+.main{flex:1;padding:24px;max-width:820px;overflow-x:hidden;}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.card-title{font-size:15px;font-weight:600;margin-bottom:16px;color:var(--text);}
+.card-sm{padding:14px;}
+
+/* FORMS */
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;font-weight:500;}
+input,select,textarea{width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);font-size:14px;outline:none;transition:border-color 0.15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+textarea{resize:vertical;}
+.row{display:flex;gap:10px;}
+.row>*{flex:1;min-width:0;}
+
+/* BUTTONS */
+button{padding:9px 16px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:14px;cursor:pointer;font-weight:500;transition:all 0.15s;}
+button:hover{background:var(--accent2);}
+button.sec{background:transparent;border:1px solid var(--border);color:var(--text);}
+button.sec:hover{background:var(--input-bg);}
+button.danger{background:var(--red);}
+button.danger:hover{background:#b91c1c;}
+button.sm{padding:7px 11px;font-size:13px;}
+button.btn-pdf,button.btn-pdf.sm{background:#2563eb!important;color:#fff!important;border:none!important;}
+button.btn-pdf:hover,button.btn-pdf.sm:hover{background:#1d4ed8!important;}
+button.btn-mail,button.btn-mail.sm{background:#16a34a!important;color:#fff!important;border:none!important;}
+button.btn-mail:hover,button.btn-mail.sm:hover{background:#15803d!important;}
+button.btn-edit,button.btn-edit.sm{background:transparent!important;border:1px solid var(--border)!important;color:var(--text)!important;}
+button.btn-edit:hover,button.btn-edit.sm:hover{background:var(--input-bg)!important;}
+button.btn-del,button.btn-del.sm{background:#dc2626!important;color:#fff!important;border:none!important;}
+button.btn-del:hover,button.btn-del.sm:hover{background:#b91c1c!important;}
+
+button.success{background:var(--green);}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge.concept{background:var(--orange-bg);color:var(--orange);}
+.badge.verstuurd{background:#dbeafe;color:#1d4ed8;}
+.badge.betaald{background:var(--green-bg);color:var(--green);}
+.badge.credit{background:var(--red-bg);color:var(--red);}
+[data-theme="dark"] .badge.verstuurd{background:#1e3a5f;color:#93c5fd;}
+
+/* TABLES */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{color:var(--muted);font-weight:500;padding:8px 6px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+td{padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--input-bg);}
+
+/* TOTALS BAR */
+.totals-bar{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+.totals-bar span{font-size:13px;font-weight:600;}
+
+/* STATUS / FEEDBACK */
+.msg{font-size:12px;color:var(--muted);margin-top:6px;min-height:18px;}
+.msg.ok{color:var(--green);}
+.msg.err{color:var(--red);}
+
+/* HIDDEN */
+.hidden{display:none!important;}
+
+/* SUMMARY CARDS */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
+.sum-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.sum-card .label{font-size:11px;color:var(--muted);margin-bottom:4px;}
+.sum-card .val{font-size:22px;font-weight:700;color:var(--text);}
+.sum-card .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* REGELS (factuurregels) */
+.regel-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;}
+.regel-row>*{flex:1;min-width:0;}
+.regel-row .omschr{flex:3;}
+.regel-row .num{flex:1;}
+.regel-del{flex:0 0 32px!important;background:transparent;border:1px solid var(--border);color:var(--red);padding:9px 8px;border-radius:8px;font-size:16px;line-height:1;}
+
+/* OVERLAY SIDEBAR MOBILE */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;}
+.overlay.open{display:block;}
+.sidebar.mobile-open{transform:translateX(0)!important;}
+
+/* FACTUURPREVIEW */
+.preview-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;font-size:13px;}
+.preview-meta .key{color:var(--muted);}
+
+/* SYNC DOT */
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;}
+.sync-txt{font-size:11px;color:var(--sidebar-muted);display:flex;align-items:center;gap:6px;padding:8px 12px;}
+
+/* RESPONSIVE */
+@media(max-width:700px){
+  .topnav{display:flex;}
+  .app{flex-direction:column;}
+  .sidebar{position:fixed;left:0;top:0;height:100vh;z-index:300;transform:translateX(-100%);transition:transform 0.25s;}
+  .main{padding:14px;max-width:100%;}
+  .summary-grid{grid-template-columns:1fr 1fr;}
+  .row{flex-wrap:wrap;}
+  .row>*{flex:1 1 140px;}
+}
+</style>
+</head>
+<body>
+
+<!-- MOBILE TOPNAV -->
+<nav class="topnav">
+  <h1>🧾 Factuur Beheer</h1>
+  <button class="hamburger" onclick="toggleSidebar()">☰</button>
+</nav>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <img id="sidebar-logo-img" style="max-width:120px;max-height:40px;object-fit:contain;margin-bottom:6px;display:none;" alt="Logo">
+    <h1 style="font-size:15px;">🧾 Factuur Beheer</h1>
+    <p>2026</p>
+  </div>
+
+  <div class="nav-section">Beheer</div>
+  <button class="nav-item active" data-tab="dashboard" onclick="switchTab(this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </button>
+  <button class="nav-item" data-tab="nieuw" onclick="switchTab(this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+    Nieuwe factuur
+  </button>
+  <button class="nav-item" data-tab="overzicht" onclick="switchTab(this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+    Alle facturen
+  </button>
+
+  <div class="nav-section">Instellingen</div>
+  <button class="nav-item" data-tab="klanten" onclick="switchTab(this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    Klanten
+  </button>
+  <button class="nav-item" data-tab="bedrijf" onclick="switchTab(this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Mijn bedrijf
+  </button>
+  <button class="nav-item" data-tab="backup" onclick="switchTab(this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+    Backup / sync
+  </button>
+
+  <div class="sidebar-bottom">
+    <div class="sync-txt"><span class="sync-dot" id="syncdot" style="background:#f59e0b"></span><span id="synctxt">Verbinden...</span></div>
+    <button class="nav-item" onclick="toggleThema()" style="width:calc(100% - 12px)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      Licht / donker
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+<!-- ===== DASHBOARD ===== -->
+<div id="tab-dashboard">
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:16px;">Dashboard</h2>
+  <div class="summary-grid" id="dash-cards"></div>
+  <div class="card">
+    <div class="card-title">Recente facturen</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Nr.</th><th>Datum</th><th>Klant</th><th>Bedrag</th><th>Status</th><th></th></tr></thead>
+        <tbody id="dash-tbl"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== NIEUWE FACTUUR ===== -->
+<div id="tab-nieuw" class="hidden">
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:16px;" id="nieuw-titel">Nieuwe factuur</h2>
+
+  <div class="card">
+    <div class="card-title">Factuurgegevens</div>
+    <div class="row">
+      <div>
+        <label>Type</label>
+        <select id="f-type" onchange="updateTypeLabel()">
+          <option value="factuur">Factuur</option>
+          <option value="creditnota">Creditnota</option>
+          <option value="pro-forma">Pro-forma</option>
+        </select>
+      </div>
+      <div>
+        <label>Factuurnummer <span style="font-weight:400;color:var(--green)">✓ automatisch opvolgend</span></label>
+        <input type="text" id="f-nr" placeholder="bijv. F-2026-001" readonly style="background:var(--input-bg);color:var(--muted);cursor:default;" title="Wordt automatisch bepaald">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Datum</label>
+        <input type="date" id="f-datum">
+      </div>
+      <div>
+        <label>Vervaldatum</label>
+        <input type="date" id="f-verval">
+      </div>
+    </div>
+    <div>
+      <label>Klant</label>
+      <select id="f-klant" onchange="vulKlantGegevens()">
+        <option value="">— kies klant —</option>
+      </select>
+    </div>
+    <div>
+      <label>Referentie / PO-nummer (optioneel)</label>
+      <input type="text" id="f-ref" placeholder="bijv. PO-12345">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Factuurregels</div>
+    <div id="regels-container"></div>
+    <button class="sec" onclick="voegRegelToe()" style="margin-top:4px;">+ Regel toevoegen</button>
+
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+      <div style="display:flex;justify-content:flex-end;">
+        <table style="width:240px;font-size:13px;">
+          <tr><td style="color:var(--muted);padding:3px 0;">Subtotaal</td><td style="text-align:right;padding:3px 0;" id="tot-sub">€ 0,00</td></tr>
+          <tr><td style="color:var(--muted);padding:3px 0;">BTW 21%</td><td style="text-align:right;padding:3px 0;" id="tot-21">€ 0,00</td></tr>
+          <tr><td style="color:var(--muted);padding:3px 0;">BTW 9%</td><td style="text-align:right;padding:3px 0;" id="tot-9">€ 0,00</td></tr>
+          <tr><td style="color:var(--muted);padding:3px 0;">BTW 0%</td><td style="text-align:right;padding:3px 0;" id="tot-0">€ 0,00</td></tr>
+          <tr style="font-weight:700;font-size:15px;border-top:1px solid var(--border);">
+            <td style="padding:6px 0;">Totaal</td>
+            <td style="text-align:right;padding:6px 0;" id="tot-totaal">€ 0,00</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Extra</div>
+    <div>
+      <label>Notitie / betalingsinstructie</label>
+      <textarea id="f-notitie" rows="3" placeholder="bijv. Gelieve te betalen op IBAN NL12 BANK 0000 0000 00 t.n.v. Uw Bedrijf"></textarea>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <button onclick="opslaanFactuur()">✅ Opslaan</button>
+    <button class="sec" onclick="previewPdf()">👁 Voorbeeld PDF</button>
+    <button class="sec" onclick="opslaanEnMail()">✉️ Opslaan &amp; mailen</button>
+    <button class="sec danger" id="btn-nieuw-cancel" onclick="annuleerBewerken()" style="display:none;">✕ Annuleren</button>
+  </div>
+  <div class="msg" id="nieuw-msg"></div>
+</div>
+
+<!-- ===== OVERZICHT ===== -->
+<div id="tab-overzicht" class="hidden">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+    <h2 style="font-size:20px;font-weight:700;">Alle facturen</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <select id="ov-filter" onchange="toonOverzicht()" style="width:auto;font-size:13px;">
+        <option value="">Alle statussen</option>
+        <option value="concept">Concept</option>
+        <option value="verstuurd">Verstuurd</option>
+        <option value="betaald">Betaald</option>
+        <option value="creditnota">Creditnota</option>
+      </select>
+      <select id="ov-klant-filter" onchange="toonOverzicht()" style="width:auto;font-size:13px;">
+        <option value="">Alle klanten</option>
+      </select>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr><th style="white-space:nowrap">Nr.</th><th style="white-space:nowrap">Datum</th><th>Klant</th><th style="white-space:nowrap">Excl. BTW</th><th style="white-space:nowrap">Totaal incl.</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody id="ov-tbl"></tbody>
+    </table>
+  </div>
+  <div class="totals-bar" id="ov-totals"></div>
+  <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="sec sm" onclick="exportCsv()">📥 CSV downloaden</button>
+  </div>
+</div>
+
+<!-- ===== KLANTEN ===== -->
+<div id="tab-klanten" class="hidden">
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:16px;">Klanten</h2>
+  <div class="card">
+    <div class="card-title" id="klant-form-titel">Nieuwe klant</div>
+    <div class="row">
+      <div><label>Bedrijfsnaam</label><input type="text" id="k-naam" placeholder="Naam bedrijf / persoon"></div>
+      <div><label>Contactpersoon</label><input type="text" id="k-contact" placeholder="Voor- en achternaam"></div>
+    </div>
+    <div class="row">
+      <div><label>Adres</label><input type="text" id="k-adres"></div>
+      <div><label>Postcode + Plaats</label><input type="text" id="k-plaats"></div>
+    </div>
+    <div class="row">
+      <div><label>Land</label><input type="text" id="k-land" placeholder="Nederland"></div>
+      <div><label>BTW-nummer (optioneel)</label><input type="text" id="k-btw-nr" placeholder="NL000000000B01"></div>
+    </div>
+    <div class="row">
+      <div><label>E-mail</label><input type="email" id="k-email" placeholder="info@bedrijf.nl"></div>
+      <div><label>Telefoon</label><input type="text" id="k-telefoon"></div>
+    </div>
+    <div class="row">
+      <div><label>IBAN (optioneel)</label><input type="text" id="k-iban" placeholder="NL12 BANK 0000 0000 00"></div>
+      <div><label>Standaard betaaltermijn (dagen)</label><input type="number" id="k-termijn" placeholder="30" value="30"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+      <button onclick="opslaanKlant()">💾 Klant opslaan</button>
+      <button class="sec" id="k-annuleer" onclick="annuleerKlant()" style="display:none;">✕ Annuleren</button>
+    </div>
+    <div class="msg" id="k-msg"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Klantenlijst</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Naam</th><th>Plaats</th><th>E-mail</th><th>Termijn</th><th></th></tr></thead>
+        <tbody id="k-tbl"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- E-MAIL CONFIG -->
+  <div class="card">
+    <div class="card-title">✉️ E-mail instellingen (Google Apps Script)</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Plak de webhook-URL van je Google Apps Script om automatisch PDF-facturen te mailen vanuit Gmail.</p>
+    <label>Webapp-URL</label>
+    <input type="text" id="cfg-url" placeholder="https://script.google.com/macros/s/.../exec">
+    <div style="margin-top:10px;">
+      <button class="sec" onclick="opslaanEmailCfg()">💾 Opslaan</button>
+    </div>
+    <div class="msg" id="cfg-msg"></div>
+  </div>
+</div>
+
+<!-- ===== MIJN BEDRIJF ===== -->
+<div id="tab-bedrijf" class="hidden">
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:16px;">Mijn bedrijf</h2>
+  <div class="card">
+    <div class="card-title">Bedrijfsgegevens (verschijnen op de PDF)</div>
+    <div style="margin-bottom:12px;padding:12px;background:var(--input-bg);border-radius:10px;border:1px solid var(--border);">
+      <label style="margin-top:0;">Logo (JPG of PNG — verschijnt op de PDF en in de sidebar)</label>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px;">
+        <img id="logo-preview" style="max-height:52px;max-width:160px;object-fit:contain;border-radius:6px;border:1px solid var(--border);padding:4px;display:none;background:#fff;" alt="Logo preview">
+        <div>
+          <button class="sec" onclick="document.getElementById('logo-file').click()" style="margin:0;">📁 Logo kiezen</button>
+          <button class="sec" onclick="verwijderLogo()" id="btn-logo-del" style="margin:0 0 0 8px;display:none;">✕ Verwijder logo</button>
+        </div>
+        <input type="file" id="logo-file" accept="image/jpeg,image/png,image/gif,image/svg+xml" style="display:none;" onchange="laadLogo(event)">
+      </div>
+      <div class="msg" id="logo-msg" style="margin-top:6px;"></div>
+    </div>
+    <div class="row">
+      <div><label>Bedrijfsnaam</label><input type="text" id="b-naam" placeholder="Uw Bedrijf BV"></div>
+      <div><label>Contactpersoon</label><input type="text" id="b-contact"></div>
+    </div>
+    <div class="row">
+      <div><label>Adres</label><input type="text" id="b-adres"></div>
+      <div><label>Postcode + Plaats</label><input type="text" id="b-plaats"></div>
+    </div>
+    <div class="row">
+      <div><label>Telefoon</label><input type="text" id="b-tel"></div>
+      <div><label>E-mail</label><input type="email" id="b-email"></div>
+    </div>
+    <div class="row">
+      <div><label>KvK-nummer</label><input type="text" id="b-kvk"></div>
+      <div><label>BTW-nummer</label><input type="text" id="b-btwnr" placeholder="NL000000000B01"></div>
+    </div>
+    <div class="row">
+      <div><label>IBAN</label><input type="text" id="b-iban" placeholder="NL12 BANK 0000 0000 00"></div>
+      <div><label>BIC</label><input type="text" id="b-bic"></div>
+    </div>
+    <div>
+      <label>Website (optioneel)</label>
+      <input type="text" id="b-website" placeholder="www.uwbedrijf.nl">
+    </div>
+    <div style="margin-top:12px;">
+      <button onclick="opslaanBedrijf()">💾 Opslaan</button>
+    </div>
+    <div class="msg" id="b-msg"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Factuurnummering</div>
+    <div class="row">
+      <div>
+        <label>Prefix</label>
+        <input type="text" id="nr-prefix" placeholder="F-" value="F-">
+      </div>
+      <div>
+        <label>Volgend nummer</label>
+        <input type="number" id="nr-volgend" placeholder="1" value="1">
+      </div>
+      <div>
+        <label>Jaar in nummer</label>
+        <select id="nr-jaar">
+          <option value="1">Ja (F-2026-001)</option>
+          <option value="0">Nee (F-001)</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <button onclick="opslaanNummering()">💾 Opslaan</button>
+    </div>
+    <div class="msg" id="nr-msg"></div>
+  </div>
+</div>
+
+<!-- ===== BACKUP ===== -->
+<div id="tab-backup" class="hidden">
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:16px;">Backup &amp; synchronisatie</h2>
+  <div class="card">
+    <div class="card-title">☁️ Firebase live-sync</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Wijzigingen worden automatisch gesynchroniseerd tussen al je apparaten via Firebase Firestore.</p>
+    <div id="sync-status" style="font-size:13px;color:var(--muted);">Verbindingsstatus wordt geladen...</div>
+  </div>
+  <div class="card">
+    <div class="card-title">💾 Lokale backup</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Download een backup-bestand of laad een eerder opgeslagen backup.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="sec" onclick="exportBackup()">⬇️ Backup downloaden</button>
+      <button class="sec" onclick="document.getElementById('import-file').click()">⬆️ Backup laden</button>
+    </div>
+    <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importBackup(event)">
+    <div class="msg" id="backup-msg"></div>
+  </div>
+</div>
+
+</main>
+</div><!-- /app -->
+
+<script>
+var LOGO_BASE64 = localStorage.getItem("fb_logo") || "";
+
+// ========== DATA ==========
+function laad(k){try{return JSON.parse(localStorage.getItem(k))||[];}catch(e){return[];}}
+function laadObj(k){try{return JSON.parse(localStorage.getItem(k))||{};}catch(e){return{};}}
+function bewaar(k,d){localStorage.setItem(k,JSON.stringify(d));}
+
+var klanten  = laad('fb_klanten');
+var facturen = laad('fb_facturen');
+var bedrijf  = laadObj('fb_bedrijf');
+var nrCfg    = laadObj('fb_nrcfg');
+var emailCfg = laadObj('fb_emailcfg');
+
+// ========== THEMA ==========
+let thema = localStorage.getItem('fb_thema')||'light';
+document.documentElement.setAttribute('data-theme',thema);
+function toggleThema(){thema=thema==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',thema);localStorage.setItem('fb_thema',thema);}
+
+// ========== SIDEBAR MOBILE ==========
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('mobile-open');
+  document.getElementById('overlay').classList.toggle('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ========== TABS ==========
+function switchTab(btn){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const tab = btn.dataset.tab;
+  ['dashboard','nieuw','overzicht','klanten','bedrijf','backup'].forEach(t=>
+    document.getElementById('tab-'+t).classList.add('hidden')
+  );
+  document.getElementById('tab-'+tab).classList.remove('hidden');
+  closeSidebar();
+  if(tab==='dashboard') toonDashboard();
+  if(tab==='nieuw')    {vulKlantSelects(); document.getElementById('f-nr').value=volgendNr();}
+  if(tab==='overzicht') {vulKlantSelects(); toonOverzicht();}
+  if(tab==='klanten')  {toonKlanten(); vulCfgVelden();}
+  if(tab==='bedrijf')  vulBedrijfVelden();
+  if(tab==='backup')   toonSyncStatus();
+}
+
+// ========== HELPERS ==========
+function eur(n){return'€ '+Number(n).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+function fmtDatum(iso){if(!iso)return'';const d=new Date(iso);return d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function hoogsteNummer(){
+  // Lees altijd vers uit localStorage (Firebase schrijft hierheen)
+  var lijst=[];
+  try{ lijst=JSON.parse(localStorage.getItem('fb_facturen')||'[]'); }catch(e){}
+  if(!lijst.length) lijst=facturen||[];
+  var cfg={};
+  try{ cfg=JSON.parse(localStorage.getItem('fb_nrcfg')||'{}'); }catch(e){}
+  var max=0;
+  lijst.forEach(function(f){
+    var match=(f.nr||'').match(/(\d+)\s*$/);
+    if(match){var n=parseInt(match[1]);if(n>max)max=n;}
+  });
+  var opgeslagen=parseInt((cfg.volgend||nrCfg.volgend)||0);
+  return Math.max(max,opgeslagen);
+}
+function volgendNr(){
+  var p=nrCfg.prefix||'F-';
+  var jaar=nrCfg.jaar!=='0'?(new Date().getFullYear()+'-'):'';
+  var n=String(hoogsteNummer()+1).padStart(3,'0');
+  return p+jaar+n;
+}
+function verhoogNr(){
+  nrCfg.volgend=hoogsteNummer()+1;
+  bewaar('fb_nrcfg',nrCfg);
+  if(window.fbSaveNrCfg)window.fbSaveNrCfg(nrCfg);
+}
+function statusBadge(s){
+  const map={concept:'concept',verstuurd:'verstuurd',betaald:'betaald',creditnota:'credit'};
+  const label={concept:'Concept',verstuurd:'Verstuurd',betaald:'Betaald',creditnota:'Creditnota'};
+  return`<span class="badge ${map[s]||'concept'}">${label[s]||s}</span>`;
+}
+
+// ========== KLANT SELECTS ==========
+function vulKlantSelects(){
+  // Lees altijd vers uit localStorage zodat Firebase-data zeker meekomt
+  var uit_storage = [];
+  try{ uit_storage = JSON.parse(localStorage.getItem('fb_klanten')||'[]'); }catch(e){}
+  const lijst = uit_storage.length ? uit_storage : (window.klanten||klanten||[]);
+  klanten = lijst; // hou lokale var ook bij
+  const gs=[...lijst].sort((a,b)=>a.naam.localeCompare(b.naam,'nl'));
+  const opts=gs.map(k=>`<option value="${k.naam}">${k.naam}</option>`).join('');
+  document.getElementById('f-klant').innerHTML='<option value="">— kies klant —</option>'+opts;
+  document.getElementById('ov-klant-filter').innerHTML='<option value="">Alle klanten</option>'+opts;
+}
+
+// ========== DASHBOARD ==========
+function toonDashboard(){
+  const open=facturen.filter(f=>f.status==='verstuurd');
+  const betaald=facturen.filter(f=>f.status==='betaald');
+  const openBedrag=open.reduce((s,f)=>s+f.totaal,0);
+  const betaaldBedrag=betaald.reduce((s,f)=>s+f.totaal,0);
+  const aantalConcept=facturen.filter(f=>f.status==='concept').length;
+  document.getElementById('dash-cards').innerHTML=`
+    <div class="sum-card"><div class="label">Openstaand</div><div class="val" style="color:var(--orange)">${eur(openBedrag)}</div><div class="sub">${open.length} facturen</div></div>
+    <div class="sum-card"><div class="label">Betaald (totaal)</div><div class="val" style="color:var(--green)">${eur(betaaldBedrag)}</div><div class="sub">${betaald.length} facturen</div></div>
+    <div class="sum-card"><div class="label">Concepten</div><div class="val">${aantalConcept}</div><div class="sub">nog niet verstuurd</div></div>
+    <div class="sum-card"><div class="label">Totaal facturen</div><div class="val">${facturen.length}</div><div class="sub">alle types</div></div>
+  `;
+  const rec=[...facturen].sort((a,b)=>b.datum.localeCompare(a.datum)).slice(0,10);
+  document.getElementById('dash-tbl').innerHTML=rec.map(f=>`
+    <tr>
+      <td style="font-weight:500">${f.nr}</td>
+      <td>${fmtDatum(f.datum)}</td>
+      <td>${f.klant}</td>
+      <td>${eur(f.totaal)}</td>
+      <td>${statusBadge(f.status)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn-edit sm" onclick="bewerkFactuur('${f.id}')" title="Bewerken">✏️ Bewerk</button>
+        <button class="btn-pdf sm" onclick="genereerEnDownloadPdf('${f.id}')" title="PDF downloaden">📄 PDF</button>
+      </td>
+    </tr>
+  `).join('')||'<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">Nog geen facturen.</td></tr>';
+}
+
+// ========== FACTUURREGELS ==========
+let regelTeller=0;
+function voegRegelToe(omschr='',prijs='',btw='21',aantal='1'){
+  regelTeller++;
+  const id='r'+regelTeller;
+  const div=document.createElement('div');
+  div.className='regel-row';
+  div.id=id;
+  div.innerHTML=`
+    <input class="omschr" type="text" placeholder="Omschrijving" value="${omschr}" style="flex:3" onchange="herbereken()">
+    <input class="num" type="number" placeholder="Aantal" value="${aantal}" style="flex:0.8;min-width:60px" onchange="herbereken()">
+    <input class="num" type="number" placeholder="Prijs" value="${prijs}" style="flex:1.2;min-width:70px" onchange="herbereken()">
+    <select style="flex:0.8;min-width:70px" onchange="herbereken()">
+      <option value="21" ${btw==='21'?'selected':''}>21%</option>
+      <option value="9"  ${btw==='9'?'selected':''}>9%</option>
+      <option value="0"  ${btw==='0'?'selected':''}>0%</option>
+    </select>
+    <input class="num" type="text" placeholder="Totaal" readonly style="flex:1;min-width:70px;background:var(--input-bg);color:var(--muted);" id="${id}-tot">
+    <button class="regel-del" onclick="verwijderRegel('${id}')">✕</button>
+  `;
+  document.getElementById('regels-container').appendChild(div);
+  herbereken();
+}
+function verwijderRegel(id){document.getElementById(id)?.remove();herbereken();}
+function getRegels(){
+  return [...document.querySelectorAll('#regels-container .regel-row')].map(row=>{
+    const inputs=row.querySelectorAll('input');
+    const sel=row.querySelector('select');
+    const omschr=inputs[0].value;
+    const aantal=parseFloat(inputs[1].value)||1;
+    const prijs=parseFloat(inputs[2].value)||0;
+    const btw=sel?sel.value:'21';
+    const subtotaal=aantal*prijs;
+    return{omschr,aantal,prijs,btw,subtotaal};
+  });
+}
+function herbereken(){
+  const regels=getRegels();
+  let sub=0,btw21=0,btw9=0,btw0=0;
+  regels.forEach((r,i)=>{
+    sub+=r.subtotaal;
+    if(r.btw==='21')btw21+=r.subtotaal*0.21;
+    else if(r.btw==='9')btw9+=r.subtotaal*0.09;
+    const tot=r.subtotaal+(r.btw==='21'?r.subtotaal*0.21:r.btw==='9'?r.subtotaal*0.09:0);
+    const rid=document.querySelectorAll('#regels-container .regel-row')[i]?.id;
+    if(rid){const el=document.getElementById(rid+'-tot');if(el)el.value=eur(tot);}
+  });
+  const totaal=sub+btw21+btw9;
+  document.getElementById('tot-sub').textContent=eur(sub);
+  document.getElementById('tot-21').textContent=eur(btw21);
+  document.getElementById('tot-9').textContent=eur(btw9);
+  document.getElementById('tot-0').textContent=eur(btw0);
+  document.getElementById('tot-totaal').textContent=eur(totaal);
+}
+
+// ========== FACTUUR OPSLAAN ==========
+let bewerkId=null;
+function updateTypeLabel(){
+  const t=document.getElementById('f-type').value;
+  document.getElementById('nieuw-titel').textContent=bewerkId?'Factuur bewerken':(t==='creditnota'?'Nieuwe creditnota':t==='pro-forma'?'Nieuwe pro-forma':'Nieuwe factuur');
+}
+function vulKlantGegevens(){
+  const naam = document.getElementById('f-klant').value;
+  const lijst = (window.klanten&&window.klanten.length) ? window.klanten : klanten;
+  const k = lijst.find(x=>x.naam===naam);
+  if(!k) return;
+  // Vervaldatum berekenen op basis van betaaltermijn klant
+  const dagen = parseInt(k.termijn)||30;
+  const datum = document.getElementById('f-datum').value || new Date().toISOString().slice(0,10);
+  const vd = new Date(datum);
+  vd.setDate(vd.getDate() + dagen);
+  document.getElementById('f-verval').value = vd.toISOString().slice(0,10);
+}
+function resetNieuwForm(){
+  ['f-type','f-nr','f-datum','f-verval','f-klant','f-ref','f-notitie'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.value='';
+  });
+  document.getElementById('f-type').value='factuur';
+  document.getElementById('f-datum').value=new Date().toISOString().slice(0,10);
+  const vd=new Date();vd.setDate(vd.getDate()+30);
+  document.getElementById('f-verval').value=vd.toISOString().slice(0,10);
+  document.getElementById('f-nr').value=volgendNr();
+  document.getElementById('regels-container').innerHTML='';
+  regelTeller=0;
+  voegRegelToe();
+  herbereken();
+  document.getElementById('nieuw-msg').textContent='';
+  document.getElementById('btn-nieuw-cancel').style.display='none';
+  document.getElementById('nieuw-titel').textContent='Nieuwe factuur';
+  bewerkId=null;
+}
+function getFactuurData(){
+  const regels=getRegels();
+  let sub=0,btw21=0,btw9=0;
+  regels.forEach(r=>{
+    sub+=r.subtotaal;
+    if(r.btw==='21')btw21+=r.subtotaal*0.21;
+    else if(r.btw==='9')btw9+=r.subtotaal*0.09;
+  });
+  const totaal=sub+btw21+btw9;
+  return{
+    type:document.getElementById('f-type').value,
+    nr:document.getElementById('f-nr').value.trim(),
+    datum:document.getElementById('f-datum').value,
+    verval:document.getElementById('f-verval').value,
+    klant:document.getElementById('f-klant').value,
+    ref:document.getElementById('f-ref').value.trim(),
+    notitie:document.getElementById('f-notitie').value.trim(),
+    regels,sub,btw21,btw9,totaal
+  };
+}
+function opslaanFactuur(){
+  const d=getFactuurData();
+  if(!d.nr){document.getElementById('nieuw-msg').className='msg err';document.getElementById('nieuw-msg').textContent='❌ Vul een factuurnummer in.';return;}
+  if(!d.klant){document.getElementById('nieuw-msg').className='msg err';document.getElementById('nieuw-msg').textContent='❌ Kies een klant.';return;}
+  if(!d.regels.length||!d.regels.some(r=>r.omschr||r.prijs)){document.getElementById('nieuw-msg').className='msg err';document.getElementById('nieuw-msg').textContent='❌ Voeg minimaal één factuuregel toe.';return;}
+
+  if(bewerkId){
+    const idx=facturen.findIndex(f=>f.id===bewerkId);
+    if(idx>-1){facturen[idx]={...facturen[idx],...d};if(window.fbSaveFactuur)window.fbSaveFactuur(facturen[idx]);}
+    bewaar('fb_facturen',facturen);
+    document.getElementById('nieuw-msg').className='msg ok';
+    document.getElementById('nieuw-msg').textContent='✅ Factuur bijgewerkt.';
+    annuleerBewerken();
+  } else {
+    const item={id:Date.now().toString(),...d,status:d.type==='creditnota'?'creditnota':'concept',aangemaakt:new Date().toISOString()};
+    facturen.push(item);
+    bewaar('fb_facturen',facturen);
+    if(window.fbSaveFactuur)window.fbSaveFactuur(item);
+    verhoogNr();
+    document.getElementById('nieuw-msg').className='msg ok';
+    document.getElementById('nieuw-msg').textContent='✅ Factuur opgeslagen als concept.';
+    setTimeout(resetNieuwForm,1200);
+  }
+  toonDashboard();
+}
+
+function bewerkFactuur(id){
+  const f=facturen.find(x=>x.id===id);
+  if(!f)return;
+  bewerkId=id;
+  document.getElementById('f-type').value=f.type||'factuur';
+  var nrEl=document.getElementById('f-nr');nrEl.value=f.nr;nrEl.removeAttribute('readonly');nrEl.style.color='';nrEl.style.cursor='';
+  document.getElementById('f-datum').value=f.datum;
+  document.getElementById('f-verval').value=f.verval||'';
+  document.getElementById('f-klant').value=f.klant;
+  document.getElementById('f-ref').value=f.ref||'';
+  document.getElementById('f-notitie').value=f.notitie||'';
+  document.getElementById('regels-container').innerHTML='';
+  regelTeller=0;
+  (f.regels||[]).forEach(r=>voegRegelToe(r.omschr,r.prijs,r.btw,r.aantal));
+  herbereken();
+  document.getElementById('btn-nieuw-cancel').style.display='';
+  document.getElementById('nieuw-titel').textContent='Factuur bewerken';
+  // naar nieuw tabblad
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelector('[data-tab="nieuw"]').classList.add('active');
+  ['dashboard','nieuw','overzicht','klanten','bedrijf','backup'].forEach(t=>document.getElementById('tab-'+t).classList.add('hidden'));
+  document.getElementById('tab-nieuw').classList.remove('hidden');
+  window.scrollTo(0,0);
+}
+function annuleerBewerken(){bewerkId=null;var nrEl=document.getElementById('f-nr');nrEl.setAttribute('readonly','');nrEl.style.color='var(--muted)';nrEl.style.cursor='default';resetNieuwForm();}
+
+// ========== STATUS WIJZIGEN ==========
+function wijzigStatus(id,status){
+  const idx=facturen.findIndex(f=>f.id===id);
+  if(idx<0)return;
+  facturen[idx].status=status;
+  bewaar('fb_facturen',facturen);
+  if(window.fbSaveFactuur)window.fbSaveFactuur(facturen[idx]);
+  toonOverzicht();toonDashboard();
+}
+function verwijderFactuur(id){
+  if(!confirm('Factuur verwijderen?'))return;
+  facturen=facturen.filter(f=>f.id!==id);
+  bewaar('fb_facturen',facturen);
+  if(window.fbDeleteFactuur)window.fbDeleteFactuur(id);
+  toonOverzicht();toonDashboard();
+}
+
+// ========== OVERZICHT ==========
+function toonOverzicht(){
+  const sf=document.getElementById('ov-filter').value;
+  const sk=document.getElementById('ov-klant-filter').value;
+  let rows=[...facturen].filter(f=>{
+    if(sf&&f.status!==sf)return false;
+    if(sk&&f.klant!==sk)return false;
+    return true;
+  }).sort((a,b)=>b.datum.localeCompare(a.datum));
+  let totExcl=0,totIncl=0;
+  rows.forEach(f=>{totExcl+=f.sub||0;totIncl+=f.totaal||0;});
+  document.getElementById('ov-tbl').innerHTML=rows.map(f=>`
+    <tr>
+      <td style="font-weight:500;white-space:nowrap">${f.nr}</td>
+      <td style="white-space:nowrap">${fmtDatum(f.datum)}</td>
+      <td>${f.klant}</td>
+      <td style="white-space:nowrap">${eur(f.sub||0)}</td>
+      <td style="font-weight:600;white-space:nowrap">${eur(f.totaal||0)}</td>
+      <td style="white-space:nowrap">${statusBadge(f.status)}</td>
+      <td style="white-space:nowrap">
+        <select style="font-size:11px;padding:4px 6px;width:auto;border-radius:6px;" onchange="wijzigStatus('${f.id}',this.value)">
+          <option value="concept"   ${f.status==='concept'?'selected':''}>Concept</option>
+          <option value="verstuurd" ${f.status==='verstuurd'?'selected':''}>Verstuurd</option>
+          <option value="betaald"   ${f.status==='betaald'?'selected':''}>Betaald</option>
+          <option value="creditnota"${f.status==='creditnota'?'selected':''}>Creditnota</option>
+        </select>
+        <button class="btn-edit sm" onclick="bewerkFactuur('${f.id}')" title="Bewerken">✏️ Bewerk</button>
+        <button class="btn-pdf sm" onclick="genereerEnDownloadPdf('${f.id}')" title="PDF downloaden">📄 PDF</button>
+        <button class="btn-mail sm" onclick="mailFactuur('${f.id}')" title="Mailen">✉️ Mail</button>
+        <button class="danger sm" onclick="verwijderFactuur('${f.id}')">🗑</button>
+      </td>
+    </tr>
+  `).join('')||'<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">Geen facturen gevonden.</td></tr>';
+  document.getElementById('ov-totals').innerHTML=`
+    <span>Excl. BTW: <b>${eur(totExcl)}</b></span>
+    <span>Incl. BTW: <b>${eur(totIncl)}</b></span>
+    <span style="color:var(--muted)">${rows.length} facturen</span>
+  `;
+}
+
+// ========== PDF ==========
+function bouwPdf(f){
+  const k=klanten.find(x=>x.naam===f.klant)||{};
+  const b=bedrijf;
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const marge=18,pw=210,breedte=pw-marge*2;
+
+  // --- HEADER BEDRIJF ---
+  let textStartX=marge;
+  var logoData = localStorage.getItem('fb_logo') || LOGO_BASE64 || '';
+  if(logoData && logoData.length > 100){
+    var fmt = logoData.indexOf('image/png')>-1 ? 'PNG' : 'JPEG';
+    try{ doc.addImage(logoData, fmt, marge, 5, 42, 24); textStartX=marge+48; }catch(e){ console.warn('Logo fout:',e); }
+  }
+  doc.setFontSize(13);doc.setFont(undefined,'bold');
+  doc.text(b.naam||'Uw Bedrijf',textStartX,14);
+  doc.setFontSize(9);doc.setFont(undefined,'normal');doc.setTextColor(100);
+  let by=20;
+  if(b.adres){doc.text(b.adres,textStartX,by);by+=5;}
+  if(b.plaats){doc.text(b.plaats,textStartX,by);by+=5;}
+  if(b.tel){doc.text('Tel: '+b.tel,textStartX,by);by+=5;}
+  if(b.email){doc.text(b.email,textStartX,by);by+=5;}
+  if(b.website){doc.text(b.website,textStartX,by);}
+
+  // --- TYPE LABEL rechts ---
+  doc.setTextColor(0);doc.setFontSize(26);doc.setFont(undefined,'bold');
+  const typeLabel=f.type==='creditnota'?'CREDITNOTA':f.type==='pro-forma'?'PRO FORMA':'FACTUUR';
+  doc.text(typeLabel,pw-marge,22,{align:'right'});
+  doc.setFontSize(11);doc.setFont(undefined,'normal');doc.setTextColor(80);
+  doc.text('Nr. '+f.nr,pw-marge,30,{align:'right'});
+  doc.text('Datum: '+fmtDatum(f.datum),pw-marge,36,{align:'right'});
+  if(f.verval)doc.text('Vervaldatum: '+fmtDatum(f.verval),pw-marge,42,{align:'right'});
+  if(f.ref)doc.text('Referentie: '+f.ref,pw-marge,48,{align:'right'});
+
+  // --- KLANT ---
+  let y=60;
+  doc.setTextColor(0);doc.setFontSize(10);doc.setFont(undefined,'bold');
+  doc.text('Factuuradres:',marge,y);y+=6;
+  doc.setFont(undefined,'bold');doc.setFontSize(12);
+  doc.text(k.naam||f.klant,marge,y);y+=6;
+  doc.setFont(undefined,'normal');doc.setFontSize(10);doc.setTextColor(60);
+  if(k.adres){doc.text(k.adres,marge,y);y+=5;}
+  if(k.plaats){doc.text(k.plaats,marge,y);y+=5;}
+  if(k.land&&k.land!=='Nederland'){doc.text(k.land,marge,y);y+=5;}
+  if(k['btw-nr']){doc.text('BTW: '+k['btw-nr'],marge,y);y+=5;}
+  doc.setTextColor(0);
+
+  // --- LIJN ---
+  y=max(y+4,72);
+  doc.setDrawColor(220);doc.setLineWidth(0.5);doc.line(marge,y,pw-marge,y);y+=6;
+
+  // --- TABEL HEADER ---
+  const kw=[breedte*0.5,breedte*0.1,breedte*0.15,breedte*0.1,breedte*0.15];
+  const kx=[marge,marge+kw[0],marge+kw[0]+kw[1],marge+kw[0]+kw[1]+kw[2],marge+kw[0]+kw[1]+kw[2]+kw[3]];
+  doc.setFillColor(240,242,245);doc.rect(marge,y,breedte,8,'F');
+  doc.setFont(undefined,'bold');doc.setFontSize(9);doc.setTextColor(80);
+  doc.text('Omschrijving',kx[0]+2,y+5.5);
+  doc.text('Aantal',kx[1]+kw[1]/2,y+5.5,{align:'center'});
+  doc.text('Prijs',kx[2]+kw[2]/2,y+5.5,{align:'center'});
+  doc.text('BTW',kx[3]+kw[3]/2,y+5.5,{align:'center'});
+  doc.text('Bedrag',kx[4]+kw[4]/2,y+5.5,{align:'center'});
+  y+=8;doc.setTextColor(0);doc.setFont(undefined,'normal');doc.setFontSize(10);
+
+  // --- REGELS ---
+  (f.regels||[]).forEach((r,i)=>{
+    if(y>270){doc.addPage();y=20;}
+    if(i%2===0){doc.setFillColor(250,251,252);doc.rect(marge,y,breedte,7,'F');}
+    const subtot=r.subtotaal||((r.aantal||1)*(r.prijs||0));
+    const btwBedrag=r.btw==='21'?subtot*0.21:r.btw==='9'?subtot*0.09:0;
+    const tot=subtot+btwBedrag;
+    doc.text(doc.splitTextToSize(r.omschr||'',kw[0]-4),kx[0]+2,y+5);
+    doc.text(String(r.aantal||1),kx[1]+kw[1]/2,y+5,{align:'center'});
+    doc.text('€ '+Number(r.prijs||0).toFixed(2),kx[2]+kw[2]/2,y+5,{align:'center'});
+    doc.text(r.btw+'%',kx[3]+kw[3]/2,y+5,{align:'center'});
+    doc.text('€ '+tot.toFixed(2),kx[4]+kw[4]/2,y+5,{align:'center'});
+    y+=7;
+  });
+
+  // --- TOTALEN ---
+  y+=4;doc.setDrawColor(220);doc.line(marge,y,pw-marge,y);y+=6;
+  const rr=pw-marge,lw=50;
+  doc.setFontSize(10);doc.setTextColor(80);
+  doc.text('Subtotaal',rr-lw-2,y,{align:'right'});doc.text('€ '+Number(f.sub||0).toFixed(2),rr,y,{align:'right'});y+=6;
+  if(f.btw21>0){doc.text('BTW 21%',rr-lw-2,y,{align:'right'});doc.text('€ '+Number(f.btw21).toFixed(2),rr,y,{align:'right'});y+=6;}
+  if(f.btw9>0){doc.text('BTW 9%',rr-lw-2,y,{align:'right'});doc.text('€ '+Number(f.btw9).toFixed(2),rr,y,{align:'right'});y+=6;}
+  doc.setTextColor(0);doc.setFont(undefined,'bold');doc.setFontSize(12);
+  doc.line(rr-lw-30,y-2,rr,y-2);
+  doc.text('Totaal incl. BTW',rr-lw-2,y+5,{align:'right'});doc.text('€ '+Number(f.totaal||0).toFixed(2),rr,y+5,{align:'right'});y+=14;
+
+  // --- BETAALINFO ---
+  doc.setFont(undefined,'normal');doc.setFontSize(9);doc.setTextColor(60);
+  if(b.iban){doc.text('Bankrekening: '+b.iban+(b.bic?' (BIC: '+b.bic+')':''),marge,y);y+=5;}
+  if(b.kvk){doc.text('KvK: '+b.kvk,marge,y);y+=5;}
+  if(b.btwnr){doc.text('BTW-nr: '+b.btwnr,marge,y);y+=5;}
+  if(f.notitie){y+=3;doc.setTextColor(0);doc.text(doc.splitTextToSize(f.notitie,breedte),marge,y);}
+  return doc;
+}
+function max(a,b){return a>b?a:b;}
+function genereerEnDownloadPdf(id){
+  const f=facturen.find(x=>x.id===id);
+  if(!f){alert('Factuur niet gevonden.');return;}
+  bouwPdf(f).save('Factuur_'+f.nr+'_'+f.klant+'.pdf');
+}
+function previewPdf(){
+  const d=getFactuurData();
+  if(!d.klant||!d.nr){document.getElementById('nieuw-msg').className='msg err';document.getElementById('nieuw-msg').textContent='❌ Vul een klant en nummer in.';return;}
+  const mock={id:'preview',...d,status:'concept',aangemaakt:new Date().toISOString()};
+  bouwPdf(mock).save('Preview_'+d.nr+'.pdf');
+}
+function opslaanEnMail(){opslaanFactuur();const last=facturen[facturen.length-1];if(last)mailFactuur(last.id);}
+
+// ========== MAIL ==========
+function mailFactuur(id){
+  const f=facturen.find(x=>x.id===id);
+  if(!f){alert('Factuur niet gevonden.');return;}
+  const k=klanten.find(x=>x.naam===f.klant)||{};
+  if(!k.email){alert('Geen e-mailadres voor deze klant.');return;}
+  const cfg=emailCfg;
+  const onderwerp=`${f.type==='creditnota'?'Creditnota':'Factuur'} ${f.nr}`;
+  const tekst=`Geachte ${k.contact||k.naam},\n\nIn de bijlage vindt u ${f.type==='creditnota'?'de creditnota':'de factuur'} met nummer ${f.nr}.\n\nMet vriendelijke groet,\n${bedrijf.naam||''}`;
+  if(cfg.url){
+    const pdfB64=bouwPdf(f).output('datauristring').split(',')[1];
+    fetch(cfg.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({to_email:k.email,onderwerp,bericht:tekst,attachment:pdfB64,attachment_name:'Factuur_'+f.nr+'.pdf'})
+    }).then(r=>r.json()).then(json=>{
+      if(json.ok){alert('✅ Verzonden naar '+k.email);wijzigStatus(id,'verstuurd');}
+      else alert('❌ Versturen mislukt: '+json.error);
+    }).catch(()=>alert('❌ Verbindingsfout.'));
+  } else {
+    window.location.href=`mailto:${k.email}?subject=${encodeURIComponent(onderwerp)}&body=${encodeURIComponent(tekst+'\n\n(Voeg de PDF toe via de 📄-knop.)')}`;
+    wijzigStatus(id,'verstuurd');
+  }
+}
+
+// ========== KLANTEN ==========
+let bewerkKlant=null;
+function opslaanKlant(){
+  const naam=document.getElementById('k-naam').value.trim();
+  if(!naam){setMsg('k-msg','❌ Naam is verplicht.','err');return;}
+  const data={
+    naam,
+    contact:document.getElementById('k-contact').value.trim(),
+    adres:document.getElementById('k-adres').value.trim(),
+    plaats:document.getElementById('k-plaats').value.trim(),
+    land:document.getElementById('k-land').value.trim()||'Nederland',
+    'btw-nr':document.getElementById('k-btw-nr').value.trim(),
+    email:document.getElementById('k-email').value.trim(),
+    telefoon:document.getElementById('k-telefoon').value.trim(),
+    iban:document.getElementById('k-iban').value.trim(),
+    termijn:document.getElementById('k-termijn').value||'30'
+  };
+  if(bewerkKlant){
+    const idx=klanten.findIndex(k=>k.naam===bewerkKlant);
+    if(idx>-1)klanten[idx]=data;
+    if(window.fbSaveKlant)window.fbSaveKlant(data);
+    bewerkKlant=null;
+    document.getElementById('k-annuleer').style.display='none';
+    document.getElementById('klant-form-titel').textContent='Nieuwe klant';
+  } else {
+    klanten.push(data);
+    if(window.fbSaveKlant)window.fbSaveKlant(data);
+  }
+  bewaar('fb_klanten',klanten);
+  ['k-naam','k-contact','k-adres','k-plaats','k-land','k-btw-nr','k-email','k-telefoon','k-iban'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('k-termijn').value='30';
+  setMsg('k-msg','✅ Klant opgeslagen.','ok');
+  vulKlantSelects();toonKlanten();
+}
+function annuleerKlant(){bewerkKlant=null;document.getElementById('k-annuleer').style.display='none';document.getElementById('klant-form-titel').textContent='Nieuwe klant';}
+function bewerkKlantFn(naam){
+  const k=klanten.find(x=>x.naam===naam);if(!k)return;
+  bewerkKlant=naam;
+  document.getElementById('k-naam').value=k.naam;
+  document.getElementById('k-contact').value=k.contact||'';
+  document.getElementById('k-adres').value=k.adres||'';
+  document.getElementById('k-plaats').value=k.plaats||'';
+  document.getElementById('k-land').value=k.land||'Nederland';
+  document.getElementById('k-btw-nr').value=k['btw-nr']||'';
+  document.getElementById('k-email').value=k.email||'';
+  document.getElementById('k-telefoon').value=k.telefoon||'';
+  document.getElementById('k-iban').value=k.iban||'';
+  document.getElementById('k-termijn').value=k.termijn||'30';
+  document.getElementById('k-annuleer').style.display='';
+  document.getElementById('klant-form-titel').textContent='Klant bewerken';
+  document.getElementById('k-naam').scrollIntoView({behavior:'smooth'});
+}
+function verwijderKlantFn(naam){
+  if(!confirm('Klant "'+naam+'" verwijderen?'))return;
+  klanten=klanten.filter(k=>k.naam!==naam);
+  bewaar('fb_klanten',klanten);
+  if(window.fbDeleteKlant)window.fbDeleteKlant(naam);
+  vulKlantSelects();toonKlanten();
+}
+function toonKlanten(){
+  const gs=[...klanten].sort((a,b)=>a.naam.localeCompare(b.naam,'nl'));
+  document.getElementById('k-tbl').innerHTML=gs.map(k=>`
+    <tr>
+      <td style="font-weight:500">${k.naam}</td>
+      <td>${k.plaats||''}</td>
+      <td>${k.email||''}</td>
+      <td>${k.termijn||30} dgn</td>
+      <td style="white-space:nowrap">
+        <button class="sec sm" onclick="bewerkKlantFn('${k.naam}')">✏️</button>
+        <button class="danger sm" onclick="verwijderKlantFn('${k.naam}')">🗑</button>
+      </td>
+    </tr>
+  `).join('')||'<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:16px">Nog geen klanten.</td></tr>';
+}
+function vulCfgVelden(){const u=emailCfg.url;if(u)document.getElementById('cfg-url').value=u;}
+function opslaanEmailCfg(){
+  emailCfg={url:document.getElementById('cfg-url').value.trim()};
+  bewaar('fb_emailcfg',emailCfg);
+  if(window.fbSaveEmailCfg)window.fbSaveEmailCfg(emailCfg);
+  setMsg('cfg-msg','✅ Opgeslagen.','ok');
+}
+
+// ========== BEDRIJF ==========
+function vulBedrijfVelden(){
+  LOGO_BASE64 = localStorage.getItem('fb_logo') || '';
+  toonLogoPreview();
+  ['naam','contact','adres','plaats','tel','email','kvk','btwnr','iban','bic','website'].forEach(k=>{
+    const el=document.getElementById('b-'+k);
+    if(el)el.value=bedrijf[k]||'';
+  });
+  document.getElementById('nr-prefix').value=nrCfg.prefix||'F-';
+  document.getElementById('nr-volgend').value=nrCfg.volgend||1;
+  document.getElementById('nr-jaar').value=nrCfg.jaar!=='0'?'1':'0';
+}
+function opslaanBedrijf(){
+  ['naam','contact','adres','plaats','tel','email','kvk','btwnr','iban','bic','website'].forEach(k=>{
+    const el=document.getElementById('b-'+k);
+    if(el)bedrijf[k]=el.value.trim();
+  });
+  bewaar('fb_bedrijf',bedrijf);
+  if(window.fbSaveBedrijf)window.fbSaveBedrijf(bedrijf);
+  setMsg('b-msg','✅ Opgeslagen.','ok');
+}
+function opslaanNummering(){
+  nrCfg.prefix=document.getElementById('nr-prefix').value;
+  nrCfg.volgend=parseInt(document.getElementById('nr-volgend').value)||1;
+  nrCfg.jaar=document.getElementById('nr-jaar').value;
+  bewaar('fb_nrcfg',nrCfg);
+  if(window.fbSaveNrCfg)window.fbSaveNrCfg(nrCfg);
+  setMsg('nr-msg','✅ Opgeslagen.','ok');
+}
+
+// ========== BACKUP / CSV ==========
+function exportBackup(){
+  const data={klanten,facturen,bedrijf,nrCfg,emailCfg};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='FactuurBeheer_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+}
+function importBackup(ev){
+  const file=ev.target.files[0];if(!file)return;
+  const r=new FileReader();r.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(!confirm('Huidige gegevens overschrijven?'))return;
+      if(d.klanten){bewaar('fb_klanten',d.klanten);klanten=d.klanten;}
+      if(d.facturen){bewaar('fb_facturen',d.facturen);facturen=d.facturen;}
+      if(d.bedrijf){bewaar('fb_bedrijf',d.bedrijf);bedrijf=d.bedrijf;}
+      if(d.nrCfg){bewaar('fb_nrcfg',d.nrCfg);nrCfg=d.nrCfg;}
+      if(d.emailCfg){bewaar('fb_emailcfg',d.emailCfg);emailCfg=d.emailCfg;}
+      setMsg('backup-msg','✅ Backup geladen. Pagina wordt vernieuwd.','ok');
+      setTimeout(()=>location.reload(),1200);
+    }catch(err){setMsg('backup-msg','❌ Ongeldig bestand.','err');}
+  };r.readAsText(file);
+}
+function exportCsv(){
+  const kop=['ID','Nr','Datum','Vervaldatum','Type','Klant','Referentie','Excl. BTW','BTW 21%','BTW 9%','Totaal incl.','Status'];
+  const regels=[kop.join(';')];
+  facturen.forEach(f=>{
+    regels.push([f.id,f.nr,fmtDatum(f.datum),fmtDatum(f.verval),f.type,f.klant,f.ref||'',
+      Number(f.sub||0).toFixed(2),Number(f.btw21||0).toFixed(2),Number(f.btw9||0).toFixed(2),
+      Number(f.totaal||0).toFixed(2),f.status].join(';'));
+  });
+  const blob=new Blob(['\uFEFF'+regels.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='Facturen_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+function toonSyncStatus(){
+  const el=document.getElementById('sync-status');
+  const dot=document.getElementById('syncdot');
+  if(window.fbConnected){el.textContent='✅ Verbonden met Firebase — live sync actief.';if(dot)dot.style.background='#22c55e';}
+  else{el.textContent='⚠️ Niet verbonden. Data wordt lokaal opgeslagen.';if(dot)dot.style.background='#f59e0b';}
+}
+
+// ========== UTILS ==========
+function setMsg(id,txt,cls){const el=document.getElementById(id);if(!el)return;el.className='msg '+(cls||'');el.textContent=txt;}
+
+// ========== LOGO ==========
+function laadLogo(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  if(file.size > 500000){
+    document.getElementById('logo-msg').textContent = '❌ Logo te groot (max 500 KB).';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    LOGO_BASE64 = e.target.result;
+    localStorage.setItem('fb_logo', LOGO_BASE64);
+    if(window.fbSaveLogo) window.fbSaveLogo(LOGO_BASE64);
+    toonLogoPreview();
+    document.getElementById('logo-msg').className='msg ok';
+    document.getElementById('logo-msg').textContent = '✅ Logo opgeslagen.';
+  };
+  reader.readAsDataURL(file);
+}
+function verwijderLogo(){
+  LOGO_BASE64 = '';
+  localStorage.removeItem('fb_logo');
+  if(window.fbDeleteLogo) window.fbDeleteLogo();
+  toonLogoPreview();
+}
+function toonLogoPreview(){
+  const prev = document.getElementById('logo-preview');
+  const del  = document.getElementById('btn-logo-del');
+  const sideImg = document.getElementById('sidebar-logo-img');
+  if(LOGO_BASE64 && LOGO_BASE64.length > 50){
+    if(prev){ prev.src = LOGO_BASE64; prev.style.display = 'block'; }
+    if(del)  del.style.display = '';
+    if(sideImg){ sideImg.src = LOGO_BASE64; sideImg.style.display = 'block'; }
+  } else {
+    if(prev){ prev.src=''; prev.style.display='none'; }
+    if(del)  del.style.display = 'none';
+    if(sideImg) sideImg.style.display = 'none';
+  }
+}
+
+// ========== INIT ==========
+// Toon logo in sidebar bij laden
+toonLogoPreview();
+// ========== LOGO ==========
+
+function vid(s){return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/,'')||'item';}
+
+async function migreer(){
+  try{
+    if(window.klanten?.length&&(await getDocs(collection(db,'fb_klanten'))).empty)
+      for(const k of window.klanten)await setDoc(doc(db,'fb_klanten',vid(k.naam)),k);
+    if(window.facturen?.length&&(await getDocs(collection(db,'fb_facturen'))).empty)
+      for(const f of window.facturen)await setDoc(doc(db,'fb_facturen',String(f.id)),f);
+  }catch(e){console.error('Migratie:',e);}
+  start();
+}
+
+function start(){
+  onSnapshot(collection(db,'fb_klanten'),snap=>{
+    window.klanten=snap.docs.map(d=>d.data());
+    klanten=window.klanten;
+    localStorage.setItem('fb_klanten',JSON.stringify(window.klanten));
+    window.fbConnected=true;
+    const dot=document.getElementById('syncdot');if(dot)dot.style.background='#22c55e';
+    const txt=document.getElementById('synctxt');if(txt)txt.textContent='Live sync';
+    window.vulKlantSelects?.();window.toonKlanten?.();
+  });
+  onSnapshot(collection(db,'fb_facturen'),snap=>{
+    window.facturen=snap.docs.map(d=>d.data());
+    facturen=window.facturen;
+    localStorage.setItem('fb_facturen',JSON.stringify(window.facturen));
+    window.toonDashboard?.();window.toonOverzicht?.();
+  });
+  onSnapshot(collection(db,'fb_config'),snap=>{
+    const b=snap.docs.find(d=>d.id==='bedrijf');
+    if(b){window.bedrijf=b.data();localStorage.setItem('fb_bedrijf',JSON.stringify(window.bedrijf));}
+    const n=snap.docs.find(d=>d.id==='nrcfg');
+    if(n){window.nrCfg=n.data();nrCfg=window.nrCfg;localStorage.setItem('fb_nrcfg',JSON.stringify(window.nrCfg));}
+    const e=snap.docs.find(d=>d.id==='emailcfg');
+    if(e){window.emailCfg=e.data();localStorage.setItem('fb_emailcfg',JSON.stringify(window.emailCfg));}
+  });
+}
+
+migreer();
+
+window.fbSaveKlant   =(k)=>setDoc(doc(db,'fb_klanten',vid(k.naam)),k);
+window.fbDeleteKlant =(naam)=>deleteDoc(doc(db,'fb_klanten',vid(naam)));
+window.fbSaveFactuur =(f)=>setDoc(doc(db,'fb_facturen',String(f.id)),f);
+window.fbDeleteFactuur=(id)=>deleteDoc(doc(db,'fb_facturen',String(id)));
+window.fbSaveBedrijf =(b)=>setDoc(doc(db,'fb_config','bedrijf'),b);
+window.fbSaveNrCfg   =(n)=>setDoc(doc(db,'fb_config','nrcfg'),n);
+window.fbSaveEmailCfg=(e)=>setDoc(doc(db,'fb_config','emailcfg'),e);
+</script>
+</body>
+</html>
