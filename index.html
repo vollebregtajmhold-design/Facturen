@@ -1394,18 +1394,39 @@ function setMsg(id,txt,cls){const el=document.getElementById(id);if(!el)return;e
 function laadLogo(ev){
   const file = ev.target.files[0];
   if(!file) return;
-  if(file.size > 500000){
-    document.getElementById('logo-msg').textContent = '❌ Logo te groot (max 500 KB).';
-    return;
-  }
+  document.getElementById('logo-msg').className='msg';
+  document.getElementById('logo-msg').textContent = '⏳ Logo verwerken...';
+
   const reader = new FileReader();
   reader.onload = function(e){
-    LOGO_BASE64 = e.target.result;
-    localStorage.setItem('fb_logo', LOGO_BASE64);
-    if(window.fbSaveLogo) window.fbSaveLogo(LOGO_BASE64);
-    toonLogoPreview();
-    document.getElementById('logo-msg').className='msg ok';
-    document.getElementById('logo-msg').textContent = '✅ Logo opgeslagen.';
+    const origData = e.target.result;
+    // Altijd verkleinen via canvas zodat het onder 500KB blijft
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.createElement('canvas');
+      // Max breedte 600px, hoogte proportioneel
+      const maxW = 600;
+      const scale = img.width > maxW ? maxW / img.width : 1;
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      // Comprimeer als JPEG, kwaliteit verlagen tot onder 500KB
+      let quality = 0.9;
+      let result = canvas.toDataURL('image/jpeg', quality);
+      while(result.length > 666666 && quality > 0.3){ // 666666 base64 ≈ 500KB
+        quality -= 0.1;
+        result = canvas.toDataURL('image/jpeg', quality);
+      }
+      LOGO_BASE64 = result;
+      localStorage.setItem('fb_logo', LOGO_BASE64);
+      if(window.fbSaveLogo) window.fbSaveLogo(LOGO_BASE64);
+      toonLogoPreview();
+      const kb = Math.round(result.length * 0.75 / 1024);
+      document.getElementById('logo-msg').className='msg ok';
+      document.getElementById('logo-msg').textContent = '✅ Logo opgeslagen (' + kb + ' KB).';
+    };
+    img.src = origData;
   };
   reader.readAsDataURL(file);
 }
